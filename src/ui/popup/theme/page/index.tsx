@@ -15,6 +15,7 @@ import {
     Grayscale,
     ImmediateModify,
     Mode,
+    PreserveAccentColors,
     ResetButton,
     Scheme,
     Scrollbar,
@@ -157,6 +158,10 @@ function FontGroup({theme, fonts, viewProps, change}: FontGroupsProps) {
             <StyleSystemControls
                 value={theme.styleSystemControls}
                 onChange={(styleSystemControls) => change({styleSystemControls})}
+            />
+            <PreserveAccentColors
+                value={theme.preserveAccentColors}
+                onChange={(preserveAccentColors) => change({preserveAccentColors})}
             />
             <ImmediateModify
                 value={theme.immediateModify}

@@ -42,6 +42,7 @@ export const themeCacheKeys: Array<keyof Theme> = [
     'darkSchemeTextColor',
     'lightSchemeBackgroundColor',
     'lightSchemeTextColor',
+    'preserveAccentColors',
 ];
 extendThemeCacheKeys(themeCacheKeys);
 
@@ -184,17 +185,99 @@ function modifyBgHSL({h, s, l, a}: HSLA, pole: HSLA): HSLA {
     return {h: hx, s, l: lx, a};
 }
 
+// ---- Preserve Accent Colors: alternative HSL modifiers ----
+// When preserveAccentColors is enabled, accent (non-neutral) colors preserve
+// their original hue and saturation. Only lightness is gently adjusted
+// to maintain readability on the transformed background.
+// Neutral colors are always processed by the standard modifiers.
+
+function preserveAccentLightModeHSL({h, s, l, a}: HSLA, poleFg: HSLA, poleBg: HSLA): HSLA {
+    const isDark = l < 0.5;
+    let isNeutral: boolean;
+    if (isDark) {
+        isNeutral = l < 0.2 || s < 0.12;
+    } else {
+        const isBlue = h > 200 && h < 280;
+        isNeutral = s < 0.24 || (l > 0.8 && isBlue);
+    }
+    if (isNeutral) {
+        return modifyLightModeHSL({h, s, l, a}, poleFg, poleBg);
+    }
+    // Accent colors in light mode: pass through unchanged,
+    // brightness/contrast/sepia filter matrix still applies afterwards.
+    return {h, s, l, a};
+}
+
+function preserveAccentBgHSL({h, s, l, a}: HSLA, pole: HSLA): HSLA {
+    const isBlue = h > 200 && h < 280;
+    const isNeutral = s < 0.12 || (l > 0.8 && isBlue);
+    if (isNeutral) {
+        return modifyBgHSL({h, s, l, a}, pole);
+    }
+    // Accent background: preserve hue and saturation.
+    // Darken backgrounds starting from l>0.4 to ensure contrast with
+    // accent text and reduce eye strain in dark mode.
+    if (l > 0.4) {
+        const lx = scale(l, 0.4, 1, 0.4, 0.25);
+        return {h, s, l: lx, a};
+    }
+    return {h, s, l, a};
+}
+
+function preserveAccentFgHSL({h, s, l, a}: HSLA, pole: HSLA): HSLA {
+    const isNeutral = l < 0.2 || s < 0.24;
+    if (isNeutral) {
+        // Light neutral text (white/near-white): keep as-is in preserve mode.
+        // It was likely designed for contrast against a colored background
+        // that we're also preserving.
+        if (l > 0.8) {
+            return {h, s, l, a};
+        }
+        return modifyFgHSL({h, s, l, a}, pole);
+    }
+    // Accent text in dark mode: preserve hue and saturation.
+    // Lift lightness enough for readability on dark backgrounds,
+    // but not so high that colors lose their vibrancy.
+    const minFgL = 0.75;
+    if (l < minFgL) {
+        return {h, s, l: minFgL, a};
+    }
+    return {h, s, l, a};
+}
+
+function preserveAccentBorderHSL({h, s, l, a}: HSLA, poleFg: HSLA, poleBg: HSLA): HSLA {
+    const isNeutral = l < 0.2 || s < 0.24;
+    if (isNeutral) {
+        return modifyBorderHSL({h, s, l, a}, poleFg, poleBg);
+    }
+    // Accent border: preserve hue and saturation, keep close to original.
+    // Only cap very light borders for dark mode comfort.
+    if (l > 0.8) {
+        return {h, s, l: 0.6, a};
+    }
+    return {h, s, l, a};
+}
+
 function _modifyBackgroundColor(rgb: RGBA, theme: Theme) {
     if (theme.mode === 0) {
         if (__PLUS__) {
             const poles = getBackgroundPoles(theme);
             return modifyColorWithCache(rgb, theme, modifyLightSchemeColorExtended, poles[0], poles[1]);
         }
+        if (theme.preserveAccentColors) {
+            const poleFg = getFgPole(theme);
+            const poleBg = getBgPole(theme);
+            return modifyColorWithCache(rgb, theme, preserveAccentLightModeHSL, poleFg, poleBg);
+        }
         return modifyLightSchemeColor(rgb, theme);
     }
     if (__PLUS__) {
         const poles = getBackgroundPoles(theme);
         return modifyColorWithCache(rgb, theme, modifyBgColorExtended, poles[0], poles[1]);
+    }
+    if (theme.preserveAccentColors) {
+        const pole = getBgPole(theme);
+        return modifyColorWithCache(rgb, theme, preserveAccentBgHSL, pole);
     }
     const pole = getBgPole(theme);
     return modifyColorWithCache(rgb, theme, modifyBgHSL, pole);
@@ -256,11 +339,20 @@ function _modifyForegroundColor(rgb: RGBA, theme: Theme) {
             const poles = getTextPoles(theme);
             return modifyColorWithCache(rgb, theme, modifyLightSchemeColorExtended, poles[0], poles[1]);
         }
+        if (theme.preserveAccentColors) {
+            const poleFg = getFgPole(theme);
+            const poleBg = getBgPole(theme);
+            return modifyColorWithCache(rgb, theme, preserveAccentLightModeHSL, poleFg, poleBg);
+        }
         return modifyLightSchemeColor(rgb, theme);
     }
     if (__PLUS__) {
         const poles = getTextPoles(theme);
         return modifyColorWithCache(rgb, theme, modifyFgColorExtended, poles[0], poles[1]);
+    }
+    if (theme.preserveAccentColors) {
+        const pole = getFgPole(theme);
+        return modifyColorWithCache(rgb, theme, preserveAccentFgHSL, pole);
     }
     const pole = getFgPole(theme);
     return modifyColorWithCache(rgb, theme, modifyFgHSL, pole);
@@ -297,7 +389,17 @@ function modifyBorderHSL({h, s, l, a}: HSLA, poleFg: HSLA, poleBg: HSLA): HSLA {
 
 function _modifyBorderColor(rgb: RGBA, theme: Theme) {
     if (theme.mode === 0) {
+        if (theme.preserveAccentColors) {
+            const poleFg = getFgPole(theme);
+            const poleBg = getBgPole(theme);
+            return modifyColorWithCache(rgb, theme, preserveAccentLightModeHSL, poleFg, poleBg);
+        }
         return modifyLightSchemeColor(rgb, theme);
+    }
+    if (theme.preserveAccentColors) {
+        const poleFg = getFgPole(theme);
+        const poleBg = getBgPole(theme);
+        return modifyColorWithCache(rgb, theme, preserveAccentBorderHSL, poleFg, poleBg);
     }
     const poleFg = getFgPole(theme);
     const poleBg = getBgPole(theme);

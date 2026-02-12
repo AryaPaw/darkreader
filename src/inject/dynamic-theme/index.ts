@@ -655,6 +655,7 @@ export function createOrUpdateDynamicThemeInternal(themeConfig: Theme, dynamicTh
         'lightSchemeBackgroundColor',
         'lightSchemeTextColor',
         'sepia',
+        'preserveAccentColors',
     ];
 
     if (prevTheme && prevFixes) {

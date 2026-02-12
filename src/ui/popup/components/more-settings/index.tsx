@@ -67,6 +67,17 @@ export default function MoreSettings({data, actions, fonts}: ExtWrapper & {fonts
                 </div>
             ) : null}
             <div class="more-settings__section">
+                <Toggle
+                    checked={theme.preserveAccentColors}
+                    labelOn="Accents: preserved"
+                    labelOff="Accents: standard"
+                    onChange={(checked) => setConfig({preserveAccentColors: checked})}
+                />
+                <p class="more-settings__description">
+                    Keep brand colors in dark mode
+                </p>
+            </div>
+            <div class="more-settings__section">
                 <Button onclick={openSettings} class="more-settings__settings-button">
                     <span class="more-settings__settings-button__wrapper">
                         <span class="more-settings__settings-button__icon">

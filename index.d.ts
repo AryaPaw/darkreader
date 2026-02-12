@@ -117,6 +117,13 @@ declare namespace DarkReader {
          * Default true
          */
         styleSystemControls: boolean;
+        /**
+         * When enabled, accent/primary/status colors are preserved
+         * during dark mode transformation, while neutral colors
+         * (backgrounds, grays) are still fully processed.
+         * Default false.
+         */
+        preserveAccentColors: boolean;
     }
 
     /**

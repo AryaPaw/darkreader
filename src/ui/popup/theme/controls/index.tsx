@@ -6,6 +6,7 @@ import {ExportTheme} from './export-theme';
 import FontPicker from './font-picker';
 import Grayscale from './grayscale';
 import ImmediateModify from './immediate-modify';
+import PreserveAccentColors from './preserve-accent-colors';
 import Mode from './mode';
 import ResetButton from './reset-button';
 import Scheme from './scheme';
@@ -27,6 +28,7 @@ export {
     Grayscale,
     ImmediateModify,
     Mode,
+    PreserveAccentColors,
     ResetButton,
     Scheme,
     Scrollbar,

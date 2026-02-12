@@ -79,6 +79,7 @@ export interface Theme {
     lightColorScheme: string;
     darkColorScheme: string;
     immediateModify: boolean;
+    preserveAccentColors: boolean;
 }
 
 export interface CustomSiteConfig {
