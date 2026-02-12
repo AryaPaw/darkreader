@@ -296,24 +296,6 @@ function getColorModifier(prop: string, value: string, rule: CSSStyleRule): stri
         ) {
             return (theme) => modifyForegroundColor(rgb, theme);
         }
-        // In preserve-accent mode, light neutral background-color on
-        // ::before/::after pseudo-elements is likely a visual element
-        // (icon, decoration), not a real background. Route as foreground.
-        const isPseudo = rule.selectorText && (
-            rule.selectorText.includes('::before') ||
-            rule.selectorText.includes('::after')
-        );
-        if (isPseudo) {
-            const hsl = rgbToHSL(rgb);
-            if (hsl.l > 0.8 && hsl.s < 0.12) {
-                return (theme) => {
-                    if (theme.preserveAccentColors) {
-                        return modifyForegroundColor(rgb, theme);
-                    }
-                    return modifyBackgroundColor(rgb, theme);
-                };
-            }
-        }
         return (theme) => modifyBackgroundColor(rgb, theme);
     }
     if (prop.includes('border') || prop.includes('outline')) {
